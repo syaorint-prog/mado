@@ -4,6 +4,7 @@ export interface Article {
   pubDate: string;
   guid: string;
   thumbnail?: string;
+  contentSnippet?: string;
 }
 
 export interface ArticleWithReadState extends Article {

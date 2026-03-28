@@ -108,6 +108,7 @@ async function performRssFetch() {
           pubDate: item.pubDate || '',
           guid: item.guid || item.link || '',
           thumbnail,
+          contentSnippet: item.contentSnippet || item.content || '概要がありません',
         };
       });
       
