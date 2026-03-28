@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import Parser from 'rss-parser';
 
+export const maxDuration = 60; // Allow function to run up to 60 seconds on Vercel
+
 const parser = new Parser();
 
 // Simple in-memory cache
@@ -32,7 +34,7 @@ const MOCK_ARTICLES = [
 // Helper function to fetch OG image from article page with timeout
 async function fetchOGImage(url: string): Promise<string> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 2000); // reduced to 2 sec
+  const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5 sec per page max
 
   try {
     const response = await fetch(url, { signal: controller.signal });
@@ -62,7 +64,7 @@ async function performRssFetch() {
   for (const url of rssUrls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // Wait up to 8sec for the XML feed itself
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
 
@@ -71,7 +73,7 @@ async function performRssFetch() {
       const xml = await res.text();
       const feed = await parser.parseString(xml);
 
-      const maxDeepArticles = 10;
+      const maxDeepArticles = 30; // Increased to 30 upon user request
       
       const itemsWithImages = await Promise.all(
         feed.items.map(async (item: any, index: number) => {
@@ -127,12 +129,12 @@ export async function GET() {
     return NextResponse.json(rssCache.data);
   }
 
-  // Absolute fallback timeout at 7 seconds
+  // Absolute fallback timeout at 25 seconds to prevent extremely long hangs
   const timeoutPromise = new Promise<NextResponse>((resolve) => {
     setTimeout(() => {
       console.warn('Absolute timeout reached, returning mock data immediately');
       resolve(NextResponse.json({ articles: MOCK_ARTICLES, error: 'timeout' }));
-    }, 7000);
+    }, 25000);
   });
 
   return Promise.race([performRssFetch(), timeoutPromise]);
