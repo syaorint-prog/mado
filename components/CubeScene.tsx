@@ -218,7 +218,6 @@ export default function CubeScene({ faceTextures, isSplitting = false, onSplitCo
       )}
 
       <OrbitControls enablePan={true} enableZoom={true} enableRotate={true} />
-      <gridHelper args={[20, 20, '#666666', '#333333']} />
     </>
   );
 }

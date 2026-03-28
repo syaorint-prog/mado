@@ -20,11 +20,11 @@ function StorageContainer() {
     color: '#00ffee',
     metalness: 0.1,
     roughness: 0.1,
-    transmission: 0.9,
+    transmission: 0.98,
     ior: 1.5,
-    thickness: 0.5,
+    thickness: 0.1,
     transparent: true,
-    opacity: 0.4,
+    opacity: 0.1,
     side: THREE.DoubleSide
   }), []);
 
