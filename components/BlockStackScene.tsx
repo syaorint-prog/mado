@@ -2,20 +2,104 @@
 
 import { OrbitControls } from '@react-three/drei';
 import { CompletedCube } from '@/types/article';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import * as THREE from 'three';
+import { Physics, RigidBody } from '@react-three/rapier';
 
 interface BlockStackSceneProps {
   completedCubes: CompletedCube[];
 }
 
-function StackedCube({ cube, position }: { cube: CompletedCube; position: [number, number, number] }) {
+function StorageContainer() {
+  const wallThickness = 1;
+  const boxSize = 24;
+  const wallHeight = 20;
+  
+  // Custom transparent material for the glass container
+  const glassMaterial = useMemo(() => new THREE.MeshPhysicalMaterial({
+    color: '#00ffee',
+    metalness: 0.1,
+    roughness: 0.1,
+    transmission: 0.9,
+    ior: 1.5,
+    thickness: 0.5,
+    transparent: true,
+    opacity: 0.4,
+    side: THREE.DoubleSide
+  }), []);
+
+  // Floor material
+  const floorMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: '#1a1a1a',
+    metalness: 0.8,
+    roughness: 0.2,
+  }), []);
+
+  return (
+    <group>
+      {/* Floor */}
+      <RigidBody type="fixed" colliders="cuboid">
+        <mesh position={[0, -wallThickness / 2, 0]} material={floorMaterial}>
+          <boxGeometry args={[boxSize, wallThickness, boxSize]} />
+        </mesh>
+      </RigidBody>
+
+      {/* Back Wall */}
+      <RigidBody type="fixed" colliders="cuboid">
+        <mesh position={[0, wallHeight / 2, -boxSize / 2 - wallThickness / 2]} material={glassMaterial}>
+          <boxGeometry args={[boxSize + wallThickness * 2, wallHeight, wallThickness]} />
+        </mesh>
+      </RigidBody>
+
+      {/* Front Wall */}
+      <RigidBody type="fixed" colliders="cuboid">
+        <mesh position={[0, wallHeight / 2, boxSize / 2 + wallThickness / 2]} material={glassMaterial}>
+          <boxGeometry args={[boxSize + wallThickness * 2, wallHeight, wallThickness]} />
+        </mesh>
+      </RigidBody>
+
+      {/* Left Wall */}
+      <RigidBody type="fixed" colliders="cuboid">
+        <mesh position={[-boxSize / 2 - wallThickness / 2, wallHeight / 2, 0]} material={glassMaterial}>
+          <boxGeometry args={[wallThickness, wallHeight, boxSize]} />
+        </mesh>
+      </RigidBody>
+
+      {/* Right Wall */}
+      <RigidBody type="fixed" colliders="cuboid">
+        <mesh position={[boxSize / 2 + wallThickness / 2, wallHeight / 2, 0]} material={glassMaterial}>
+          <boxGeometry args={[wallThickness, wallHeight, boxSize]} />
+        </mesh>
+      </RigidBody>
+    </group>
+  );
+}
+
+function StackedCube({ cube, index }: { cube: CompletedCube; index: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const textureLoaderRef = useRef<THREE.TextureLoader | null>(null);
 
   if (!textureLoaderRef.current) {
     textureLoaderRef.current = new THREE.TextureLoader();
   }
+
+  // Calculate a varied starting drop position
+  // Uses index to stagger heights somewhat
+  const initialPosition = useMemo(() => {
+    return [
+      (Math.random() - 0.5) * 16,     // X between -8 and 8
+      15 + Math.random() * 5 + (index * 0.5), // Y stacked high depending on index
+      (Math.random() - 0.5) * 16      // Z between -8 and 8
+    ] as [number, number, number];
+  }, [index, cube.id]);
+
+  const initialRotation = useMemo(() => {
+    return [
+      Math.random() * Math.PI,
+      Math.random() * Math.PI,
+      Math.random() * Math.PI
+    ] as [number, number, number];
+  }, [cube.id]);
 
   useEffect(() => {
     if (!meshRef.current) return;
@@ -124,44 +208,53 @@ function StackedCube({ cube, position }: { cube: CompletedCube; position: [numbe
   }, [cube]);
 
   return (
-    <mesh ref={meshRef} position={position}>
-      <boxGeometry args={[2, 2, 2]} />
-    </mesh>
+    <RigidBody 
+      type="dynamic" 
+      colliders="cuboid" 
+      position={initialPosition} 
+      rotation={initialRotation}
+      restitution={0.5} // slightly bouncy
+      friction={0.8}
+    >
+      <mesh ref={meshRef}>
+        <boxGeometry args={[2, 2, 2]} />
+      </mesh>
+    </RigidBody>
   );
 }
 
 export default function BlockStackScene({ completedCubes }: BlockStackSceneProps) {
-  // 積み上げ位置を計算（縦に積む）
-  const getStackPosition = (index: number): [number, number, number] => {
-    const row = Math.floor(index / 5); // 5個ごとに新しい列
-    const col = index % 5;
-    return [col * 2.5 - 5, row * 2.5, 0];
-  };
-
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 10, 5]} intensity={1} />
-      <directionalLight position={[-10, -10, -5]} intensity={0.3} />
+      <ambientLight intensity={0.6} />
+      <directionalLight position={[15, 20, 10]} intensity={1.2} castShadow />
+      <directionalLight position={[-10, 10, -10]} intensity={0.5} />
 
-      {completedCubes.map((cube, index) => (
-        <StackedCube
-          key={cube.id}
-          cube={cube}
-          position={getStackPosition(index)}
-        />
-      ))}
+      {/* 
+        Wrap everything physical in Physics context.
+        Provide a slightly more bouncy and robust physical world.
+      */}
+      <Physics gravity={[0, -9.81, 0]}>
+        <StorageContainer />
+
+        {completedCubes.map((cube, index) => (
+          <StackedCube
+            key={cube.id}
+            cube={cube}
+            index={index}
+          />
+        ))}
+      </Physics>
 
       <OrbitControls
         enableZoom={true}
         enablePan={true}
         enableRotate={true}
-        minDistance={5}
-        maxDistance={30}
+        minDistance={10}
+        maxDistance={50}
+        target={[0, 8, 0]} // Center camera focus higher to view the box
+        maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going strictly below the ground
       />
-
-      {/* 床のグリッド */}
-      <gridHelper args={[30, 30, '#444444', '#222222']} position={[0, -1, 0]} />
     </>
   );
 }
