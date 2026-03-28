@@ -101,7 +101,7 @@ export default function Home() {
             {viewMode === 'create' ? (
               <>
                 <span className="text-xl">📦</span>
-                <span>ブロック積み上げを見る ({completedCubes.length})</span>
+                <span>匣の杜へ ({completedCubes.length})</span>
               </>
             ) : (
               <>
@@ -187,7 +187,7 @@ export default function Home() {
             <div className="bg-black/70 text-white p-4 rounded-lg">
               <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
                 <span>📦</span>
-                <span>ブロック積み上げ</span>
+                <span>匣の杜</span>
               </h1>
               <p className="text-sm text-gray-300">
                 完成したキューブのコレクションです。
