@@ -14,6 +14,8 @@ export default function NewsSidepanel({ onArticleClick }: NewsSidepanelProps) {
   const [retryCount, setRetryCount] = useState(0);
 
   const [selectedArticleIndex, setSelectedArticleIndex] = useState<number | null>(null);
+  const [articleBody, setArticleBody] = useState<string | null>(null);
+  const [fetchingBody, setFetchingBody] = useState(false);
 
   const fetchArticles = useCallback(async () => {
     try {
@@ -52,9 +54,23 @@ export default function NewsSidepanel({ onArticleClick }: NewsSidepanelProps) {
     fetchArticles();
   }, []);
 
-  const handleArticleClick = (index: number) => {
+  const handleArticleClick = async (index: number) => {
     // スライドして詳細ビューを開く
     setSelectedArticleIndex(index);
+    setArticleBody(null);
+    setFetchingBody(true);
+
+    try {
+      const article = articles[index];
+      const res = await fetch(`/api/article?url=${encodeURIComponent(article.link)}`);
+      const data = await res.json();
+      setArticleBody(data.text);
+    } catch (err) {
+      console.error('Failed to fetch article body:', err);
+      setArticleBody("本文の取得に失敗しました。元のサイトを開いてお読みください。");
+    } finally {
+      setFetchingBody(false);
+    }
   };
 
   const handleReadConfirm = () => {
@@ -218,8 +234,23 @@ export default function NewsSidepanel({ onArticleClick }: NewsSidepanelProps) {
                       hour: '2-digit', minute: '2-digit'
                     })}
                   </div>
+                  
+                  {selectedArticle.contentSnippet && selectedArticle.contentSnippet !== '概要がありません' && (
+                    <div className="text-sm font-bold text-gray-700 leading-relaxed whitespace-pre-wrap mb-4 pb-4 border-b border-gray-100">
+                      【概要】<br/>
+                      {selectedArticle.contentSnippet}
+                    </div>
+                  )}
+
                   <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
-                    {selectedArticle.contentSnippet}
+                    {fetchingBody ? (
+                      <div className="flex flex-col items-center justify-center py-8 gap-2 text-gray-400">
+                        <span className="animate-spin text-2xl">🔄</span>
+                        <span className="text-xs">本文を取得中...</span>
+                      </div>
+                    ) : (
+                      articleBody || "本文が見つかりませんでした。"
+                    )}
                   </div>
                 </div>
               </div>
