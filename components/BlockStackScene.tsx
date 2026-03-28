@@ -226,6 +226,8 @@ function StackedCube({ cube, index }: { cube: CompletedCube; index: number }) {
 export default function BlockStackScene({ completedCubes }: BlockStackSceneProps) {
   return (
     <>
+      <color attach="background" args={['#eef6f0']} />
+      
       <ambientLight intensity={0.6} />
       <directionalLight position={[15, 20, 10]} intensity={1.2} castShadow />
       <directionalLight position={[-10, 10, -10]} intensity={0.5} />
