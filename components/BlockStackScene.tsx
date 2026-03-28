@@ -75,6 +75,51 @@ function StorageContainer() {
   );
 }
 
+const COLORS = [
+  '#ff3b3b', // Bright Red
+  '#ff9900', // Bright Orange
+  '#ffcc00', // Bright Yellow
+  '#00cc55', // Mado Green
+  '#00ffee', // Cyan
+  '#2266cc', // Royal Blue
+  '#9933cc', // Purple
+  '#ff66aa', // Pink
+];
+
+function DummyColorfulCube({ index }: { index: number }) {
+  const initialPosition = useMemo(() => {
+    return [
+      (Math.random() - 0.5) * 20,              // X 
+      8 + Math.random() * 20 + (index * 0.3),  // Y (drops sequentially from above)
+      (Math.random() - 0.5) * 20               // Z 
+    ] as [number, number, number];
+  }, [index]);
+
+  const initialRotation = useMemo(() => {
+    return [
+      Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI
+    ] as [number, number, number];
+  }, []);
+
+  const color = useMemo(() => COLORS[index % COLORS.length], [index]);
+
+  return (
+    <RigidBody 
+      type="dynamic" 
+      colliders="cuboid" 
+      position={initialPosition} 
+      rotation={initialRotation}
+      restitution={0.5} 
+      friction={0.8}
+    >
+      <mesh>
+        <boxGeometry args={[2, 2, 2]} />
+        <meshStandardMaterial color={color} metalness={0.2} roughness={0.3} />
+      </mesh>
+    </RigidBody>
+  );
+}
+
 function StackedCube({ cube, index }: { cube: CompletedCube; index: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const textureLoaderRef = useRef<THREE.TextureLoader | null>(null);
@@ -224,6 +269,9 @@ function StackedCube({ cube, index }: { cube: CompletedCube; index: number }) {
 }
 
 export default function BlockStackScene({ completedCubes }: BlockStackSceneProps) {
+  // ハッカソン用：デフォルトで落ちてくる90個のカラフルなブロック
+  const dummyCubes = useMemo(() => Array.from({ length: 90 }).map((_, i) => i), []);
+
   return (
     <>
       <color attach="background" args={['#eef6f0']} />
@@ -239,11 +287,16 @@ export default function BlockStackScene({ completedCubes }: BlockStackSceneProps
       <Physics gravity={[0, -9.81, 0]}>
         <StorageContainer />
 
+        {/* 90 default attractive dummy cubes */}
+        {dummyCubes.map(i => (
+          <DummyColorfulCube key={`dummy-${i}`} index={i} />
+        ))}
+
         {completedCubes.map((cube, index) => (
           <StackedCube
             key={cube.id}
             cube={cube}
-            index={index}
+            index={index + 90} // start height slightly above dummy cubes
           />
         ))}
       </Physics>
@@ -260,4 +313,3 @@ export default function BlockStackScene({ completedCubes }: BlockStackSceneProps
     </>
   );
 }
-
