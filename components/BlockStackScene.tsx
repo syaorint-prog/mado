@@ -269,8 +269,8 @@ function StackedCube({ cube, index }: { cube: CompletedCube; index: number }) {
 }
 
 export default function BlockStackScene({ completedCubes }: BlockStackSceneProps) {
-  // ハッカソン用：デフォルトで落ちてくる90個のカラフルなブロック
-  const dummyCubes = useMemo(() => Array.from({ length: 90 }).map((_, i) => i), []);
+  // ハッカソン用：デフォルトで落ちてくる500個のカラフルなブロック
+  const dummyCubes = useMemo(() => Array.from({ length: 500 }).map((_, i) => i), []);
 
   return (
     <>
@@ -287,7 +287,7 @@ export default function BlockStackScene({ completedCubes }: BlockStackSceneProps
       <Physics gravity={[0, -9.81, 0]}>
         <StorageContainer />
 
-        {/* 90 default attractive dummy cubes */}
+        {/* 500 default attractive dummy cubes */}
         {dummyCubes.map(i => (
           <DummyColorfulCube key={`dummy-${i}`} index={i} />
         ))}
@@ -296,7 +296,7 @@ export default function BlockStackScene({ completedCubes }: BlockStackSceneProps
           <StackedCube
             key={cube.id}
             cube={cube}
-            index={index + 90} // start height slightly above dummy cubes
+            index={index + 500} // start height slightly above dummy cubes
           />
         ))}
       </Physics>
