@@ -2,12 +2,16 @@
 
 import { OrbitControls } from '@react-three/drei';
 import { CompletedCube } from '@/types/article';
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useCallback } from 'react';
 import * as THREE from 'three';
 import { Physics, RigidBody } from '@react-three/rapier';
+import type { RapierRigidBody } from '@react-three/rapier';
+import { useFrame, useThree } from '@react-three/fiber';
+import { ShapeType, getShapeCoords } from '@/lib/shapes';
 
 interface BlockStackSceneProps {
   completedCubes: CompletedCube[];
+  targetShape?: ShapeType | null;
 }
 
 function StorageContainer() {
@@ -86,7 +90,9 @@ const COLORS = [
   '#ff66aa', // Pink
 ];
 
-function DummyColorfulCube({ index }: { index: number }) {
+function DummyColorfulCube({ index, targetPosition }: { index: number; targetPosition: [number, number, number] | null }) {
+  const rbRef = useRef<RapierRigidBody>(null);
+
   const initialPosition = useMemo(() => {
     return [
       (Math.random() - 0.5) * 20,              // X 
@@ -103,9 +109,56 @@ function DummyColorfulCube({ index }: { index: number }) {
 
   const color = useMemo(() => COLORS[index % COLORS.length], [index]);
 
+  const prevTargetPosition = useRef(targetPosition);
+
+  useEffect(() => {
+    if (prevTargetPosition.current !== null && targetPosition === null) {
+      // Disassemble explosion
+      setTimeout(() => {
+        if (!rbRef.current) return;
+        rbRef.current.wakeUp();
+        const curPos = rbRef.current.translation();
+        const dx = curPos.x;
+        const dz = curPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz) || 1;
+        const mag = 10 + Math.random() * 20;
+
+        const impulse = {
+          x: (dx / dist) * mag + (Math.random() - 0.5) * 20,
+          y: (Math.random() * mag) + 5,
+          z: (dz / dist) * mag + (Math.random() - 0.5) * 20
+        };
+        const torque = {
+          x: (Math.random() - 0.5) * 50,
+          y: (Math.random() - 0.5) * 50,
+          z: (Math.random() - 0.5) * 50
+        };
+        rbRef.current.applyImpulse(impulse, true);
+        rbRef.current.applyTorqueImpulse(torque, true);
+      }, 50); // wait briefly for Rapier physical mode to be definitively dynamic
+    }
+    prevTargetPosition.current = targetPosition;
+  }, [targetPosition]);
+
+  useFrame((_, delta) => {
+    if (targetPosition && rbRef.current) {
+      const curPos = rbRef.current.translation();
+      const targetVec = new THREE.Vector3(...targetPosition);
+      
+      const newPos = new THREE.Vector3(curPos.x, curPos.y, curPos.z).lerp(targetVec, 4 * delta);
+      rbRef.current.setNextKinematicTranslation(newPos);
+
+      const curRot = rbRef.current.rotation();
+      const targetQuat = new THREE.Quaternion().identity();
+      const newRot = new THREE.Quaternion(curRot.x, curRot.y, curRot.z, curRot.w).slerp(targetQuat, 4 * delta);
+      rbRef.current.setNextKinematicRotation(newRot);
+    }
+  });
+
   return (
     <RigidBody 
-      type="dynamic" 
+      ref={rbRef}
+      type={targetPosition ? "kinematicPosition" : "dynamic"}
       colliders="cuboid" 
       position={initialPosition} 
       rotation={initialRotation}
@@ -120,8 +173,9 @@ function DummyColorfulCube({ index }: { index: number }) {
   );
 }
 
-function StackedCube({ cube, index }: { cube: CompletedCube; index: number }) {
+function StackedCube({ cube, index, targetPosition }: { cube: CompletedCube; index: number; targetPosition: [number, number, number] | null }) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const rbRef = useRef<RapierRigidBody>(null);
   const textureLoaderRef = useRef<THREE.TextureLoader | null>(null);
 
   if (!textureLoaderRef.current) {
@@ -252,9 +306,56 @@ function StackedCube({ cube, index }: { cube: CompletedCube; index: number }) {
     };
   }, [cube]);
 
+  const prevTargetPosition = useRef(targetPosition);
+
+  useEffect(() => {
+    if (prevTargetPosition.current !== null && targetPosition === null) {
+      // Disassemble explosion
+      setTimeout(() => {
+        if (!rbRef.current) return;
+        rbRef.current.wakeUp();
+        const curPos = rbRef.current.translation();
+        const dx = curPos.x;
+        const dz = curPos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz) || 1;
+        const mag = 10 + Math.random() * 20;
+
+        const impulse = {
+          x: (dx / dist) * mag + (Math.random() - 0.5) * 20,
+          y: (Math.random() * mag) + 5,
+          z: (dz / dist) * mag + (Math.random() - 0.5) * 20
+        };
+        const torque = {
+          x: (Math.random() - 0.5) * 50,
+          y: (Math.random() - 0.5) * 50,
+          z: (Math.random() - 0.5) * 50
+        };
+        rbRef.current.applyImpulse(impulse, true);
+        rbRef.current.applyTorqueImpulse(torque, true);
+      }, 50); // wait briefly for Rapier physical mode to be definitively dynamic
+    }
+    prevTargetPosition.current = targetPosition;
+  }, [targetPosition]);
+
+  useFrame((_, delta) => {
+    if (targetPosition && rbRef.current) {
+      const curPos = rbRef.current.translation();
+      const targetVec = new THREE.Vector3(...targetPosition);
+      
+      const newPos = new THREE.Vector3(curPos.x, curPos.y, curPos.z).lerp(targetVec, 4 * delta);
+      rbRef.current.setNextKinematicTranslation(newPos);
+
+      const curRot = rbRef.current.rotation();
+      const targetQuat = new THREE.Quaternion().identity();
+      const newRot = new THREE.Quaternion(curRot.x, curRot.y, curRot.z, curRot.w).slerp(targetQuat, 4 * delta);
+      rbRef.current.setNextKinematicRotation(newRot);
+    }
+  });
+
   return (
     <RigidBody 
-      type="dynamic" 
+      ref={rbRef}
+      type={targetPosition ? "kinematicPosition" : "dynamic"}
       colliders="cuboid" 
       position={initialPosition} 
       rotation={initialRotation}
@@ -267,10 +368,50 @@ function StackedCube({ cube, index }: { cube: CompletedCube; index: number }) {
     </RigidBody>
   );
 }
+function CameraFocus({ targetShape }: { targetShape: ShapeType | null }) {
+  const { controls } = useThree();
 
-export default function BlockStackScene({ completedCubes }: BlockStackSceneProps) {
+  useFrame((_, delta) => {
+    if (controls) {
+      // 形状形成時は高めにフォーカス（Y=30）、普段は箱へフォーカス（Y=8）
+      const targetY = targetShape ? 30 : 8;
+      const targetVec = new THREE.Vector3(0, targetY, 0);
+      
+      // OrbitControls の target を毎フレーム滑らかに変更する
+      (controls as any).target.lerp(targetVec, 2 * delta);
+    }
+  });
+
+  return null;
+}
+
+export default function BlockStackScene({ completedCubes, targetShape }: BlockStackSceneProps) {
   // ハッカソン用：デフォルトで落ちてくる500個のカラフルなブロック
   const dummyCubes = useMemo(() => Array.from({ length: 500 }).map((_, i) => i), []);
+
+  const shapeCoords = useMemo(() => getShapeCoords(targetShape ?? null), [targetShape]);
+  const requiredCount = shapeCoords.length;
+
+  const getTargetPos = useCallback((cubeType: 'completed' | 'dummy', index: number): [number, number, number] | null => {
+    if (!targetShape) return null;
+    
+    // We prioritize completedCubes first
+    // If completed is 5, and we need 40 blocks, they take indices 0-4.
+    // Dummies take indices 5-39.
+    const completedLength = completedCubes.length;
+    let globalIndex = -1;
+
+    if (cubeType === 'completed') {
+      globalIndex = index;
+    } else {
+      globalIndex = completedLength + index;
+    }
+
+    if (globalIndex >= 0 && globalIndex < requiredCount) {
+      return shapeCoords[globalIndex];
+    }
+    return null;
+  }, [targetShape, shapeCoords, completedCubes.length]);
 
   return (
     <>
@@ -279,6 +420,9 @@ export default function BlockStackScene({ completedCubes }: BlockStackSceneProps
       <ambientLight intensity={0.6} />
       <directionalLight position={[15, 20, 10]} intensity={1.2} castShadow />
       <directionalLight position={[-10, 10, -10]} intensity={0.5} />
+
+      {/* カメラフォーカスの自動調整 */}
+      <CameraFocus targetShape={targetShape ?? null} />
 
       {/* 
         Wrap everything physical in Physics context.
@@ -289,7 +433,11 @@ export default function BlockStackScene({ completedCubes }: BlockStackSceneProps
 
         {/* 500 default attractive dummy cubes */}
         {dummyCubes.map(i => (
-          <DummyColorfulCube key={`dummy-${i}`} index={i} />
+          <DummyColorfulCube 
+            key={`dummy-${i}`} 
+            index={i} 
+            targetPosition={getTargetPos('dummy', i)}
+          />
         ))}
 
         {completedCubes.map((cube, index) => (
@@ -297,17 +445,19 @@ export default function BlockStackScene({ completedCubes }: BlockStackSceneProps
             key={cube.id}
             cube={cube}
             index={index + 500} // start height slightly above dummy cubes
+            targetPosition={getTargetPos('completed', index)}
           />
         ))}
       </Physics>
 
+
       <OrbitControls
+        makeDefault
         enableZoom={true}
         enablePan={true}
         enableRotate={true}
         minDistance={10}
-        maxDistance={50}
-        target={[0, 8, 0]} // Center camera focus higher to view the box
+        maxDistance={70} // ズームアウト制限を緩和して形全体を見やすくする
         maxPolarAngle={Math.PI / 2 - 0.05} // Prevent going strictly below the ground
       />
     </>
