@@ -130,7 +130,7 @@ export default function NewsSidepanel({ onArticleClick }: NewsSidepanelProps) {
           <div className="bg-[#009944] text-white p-4 font-bold text-lg flex justify-between items-center shadow-md">
             <div className="flex items-center gap-2">
               <span className="text-2xl">🪟</span>
-              <span>匣の杜 RSSリーダー</span>
+              <span>RSSリーダー匣の杜</span>
             </div>
             <button 
               onClick={() => fetchArticles()}

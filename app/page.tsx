@@ -156,7 +156,7 @@ export default function Home() {
               <div className="bg-black/70 text-white p-4 rounded-lg">
                 <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
                   <span>🪟</span>
-                  <span>匣の杜RSSリーダー</span>
+                  <span>RSSリーダー匣の杜</span>
                 </h1>
                 <p className="text-sm text-gray-300">
                   右のニュースをクリックして、キューブの面を埋めましょう。
